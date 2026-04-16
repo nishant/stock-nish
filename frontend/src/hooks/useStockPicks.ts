@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fetchTopPicks } from '../api/stocks';
 import type { StockPicksResponse } from '../types/stock';
 
@@ -15,6 +15,9 @@ export function useStockPicks(): UseStockPicksResult {
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
+  // Stable reference — safe to use as useEffect dep in App
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -22,25 +25,17 @@ export function useStockPicks(): UseStockPicksResult {
 
     fetchTopPicks()
       .then((result) => {
-        if (!cancelled) {
-          setData(result);
-        }
+        if (!cancelled) { setData(result); }
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unknown error');
-        }
+        if (!cancelled) { setError(err instanceof Error ? err.message : 'Unknown error'); }
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) { setLoading(false); }
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [tick]);
 
-  return { data, loading, error, refetch: () => setTick((t) => t + 1) };
+  return { data, loading, error, refetch };
 }
